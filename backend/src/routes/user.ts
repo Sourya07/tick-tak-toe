@@ -1,5 +1,6 @@
 import express from 'express'
-import { User } from '../db/db.js'
+
+import { User } from '../db/db.ts'
 import jwt from 'jsonwebtoken'
 const router = express.Router()
 const app = express()
