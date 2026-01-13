@@ -1,24 +1,16 @@
-import express from 'express';
-import userRoutes from './routes/user.js';
-import { User, connectDB } from './db/db.js';
-const app = express();
-app.use(express.json());
-app.use("/v1", userRoutes);
-await connectDB();
-app.get('/hii', (req, res) => {
-    console.log(req.body);
-    res.json({
-        msg: req.body
+import http from "http";
+import dotenv from "dotenv";
+import app from "./app.js";
+import { connectDB } from "./db/db.js";
+import { initWebSocket } from "./ws/index.js";
+dotenv.config();
+const server = http.createServer(app);
+initWebSocket(app);
+const PORT = 3000;
+(async () => {
+    await connectDB();
+    app.listen(PORT, () => {
+        console.log(`HTTP + WS running on ${PORT}`);
     });
-});
-app.post('/hii', (req, res) => {
-    console.log(req.body);
-    res.json({
-        msg: "hii there "
-    });
-});
-console.log("hii there it is my name");
-app.listen(3000, () => {
-    console.log("Server is running for this:3000");
-});
+})();
 //# sourceMappingURL=index.js.map

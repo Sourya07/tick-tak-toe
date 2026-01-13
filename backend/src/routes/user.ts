@@ -1,72 +1,55 @@
-import express from 'express'
+import express from "express";
+import jwt from "jsonwebtoken";
+import { User } from "../db/db.js";
+import authmiddleware from "../middleware/auth.js";
+const router = express.Router();
+const JWT_SECRET = "supersecretkey123";
 
-import { User } from '../db/db.ts'
-import jwt from 'jsonwebtoken'
-const router = express.Router()
-const app = express()
-const JWT_SECRET = "supersecretkey123"
-app.use(express.json())
+router.get("/user", authmiddleware, (req, res) => {
+    res.json({ msg: "Hi, this is user route" });
+});
 
-function userRoutes() {
-    router.get('/user', (req, res) => {
-        res.json({
-            msg: "hii there this is the user routes "
-        })
-    })
-    router.post('/signin', async (req, res) => {
-        const { email, password } = req.body;
+router.post("/signin", async (req, res) => {
+    const { email, password } = req.body;
 
-        const user = await User.findOne({ email })
+    const user = await User.findOne({ email });
 
-        if (!user) {
-            return res.status(404).json({
-                msg: "No user found"
-            });
-        }
-        if (user.password !== password) {
-            return res.status(401).json({
-                msg: "Invalid password"
-            });
-        }
+    if (!user) {
+        return res.status(404).json({ msg: "No user found" });
+    }
 
+    if (user.password !== password) {
+        return res.status(401).json({ msg: "Invalid password" });
+    }
 
-        const token = jwt.sign({
-            userId: user._id
-        }, JWT_SECRET)
+    const token = jwt.sign(
+        { userId: user._id },
+        JWT_SECRET,
+        { expiresIn: "7d" }
+    );
 
+    res.json({
+        msg: "Login successful",
+        token
+    });
+});
 
+router.post("/signup", async (req, res) => {
+    const { name, email, password } = req.body;
 
+    const existingUser = await User.findOne({ email });
 
-        res.json({
-            message: "Login data received"
+    if (existingUser) {
+        return res.status(409).json({
+            msg: "User already exists"
         });
-    })
-    router.post('/signup', async (req, res) => {
-        const { name, email, password } = req.body;
-        console.log(email, password);
+    }
 
-        const existinguser = await User.findOne({
-            email
-        })
+    await User.create({ name, email, password });
 
-        if (existinguser) {
-            return res.status(409).json({
-                message: "User already exists"
-            });
-        }
-        const user = await User.create({
-            name,
-            email,
-            password
-        })
+    res.status(201).json({
+        msg: "Signup successful"
+    });
+});
 
-
-
-        res.json({
-            message: "Login data received signup"
-        });
-    })
-}
-
-
-export default userRoutes;
+export default router;

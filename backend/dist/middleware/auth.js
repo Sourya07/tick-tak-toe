@@ -1,4 +1,4 @@
-import jwt from 'jsonwebtoken';
+import jwt, { decode } from 'jsonwebtoken';
 const JWT_SECRET = "supersecretkey123";
 const authmiddleware = (req, res, next) => {
     const authHeader = req.headers.authorization;
@@ -15,6 +15,8 @@ const authmiddleware = (req, res, next) => {
     }
     try {
         const decoded = jwt.verify(token, JWT_SECRET);
+        console.log(decoded);
+        console.log("req" + req);
         req.userId = decoded.userId;
         next();
     }

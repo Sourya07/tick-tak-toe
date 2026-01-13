@@ -1,28 +1,20 @@
-import express from 'express'
-import userRoutes from './routes/user.js';
-import { User, connectDB } from './db/db.js'
-const app = express();
-app.use(express.json())
+import http from "http";
+import dotenv from "dotenv";
+import app from "./app.js";
+import { connectDB } from "./db/db.js";
+import { initWebSocket } from "./ws/index.js";
 
+dotenv.config();
 
-app.use("/v1", userRoutes)
-await connectDB();
-app.get('/hii', (req, res) => {
-    console.log(req.body);
-    res.json({
-        msg: req.body
-    })
-})
+const server = http.createServer(app);
 
-app.post('/hii', (req, res) => {
-    console.log(req.body);
-    res.json({
-        msg: "hii there "
-    })
-})
+initWebSocket(server);
 
-console.log("hii there it is my name")
+const PORT = 3000;
 
-app.listen(3000, () => {
-    console.log("Server is running for this:3000")
-})
+(async () => {
+    await connectDB();
+    server.listen(PORT, () => {
+        console.log(`HTTP + WS running on ${PORT}`);
+    });
+})();

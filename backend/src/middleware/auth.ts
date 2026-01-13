@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from 'express';
 
-import jwt from 'jsonwebtoken';
+import jwt, { decode } from 'jsonwebtoken';
 
 const JWT_SECRET = "supersecretkey123"
 
@@ -31,7 +31,8 @@ const authmiddleware = (req: Request, res: Response, next: NextFunction) => {
             token,
             JWT_SECRET
         ) as JwtPayload
-
+        console.log(decoded)
+        console.log("req" + req)
         req.userId = decoded.userId;
 
         next();
