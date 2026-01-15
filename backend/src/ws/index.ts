@@ -21,15 +21,15 @@ export function initWebSocket(server: any) {
 
     const rooms = new Map<string, GameRoom>();
     wss.on("connection", (ws: AuthenticatedWebSocket, req) => {
-        const user = authenticateSocket(req);
-        if (!user) {
-            ws.close();
-            console.log("hello there is no user")
-            return;
-        }
+        // const user = authenticateSocket(req);
+        // if (!user) {
+        //     ws.close();
+        //     console.log("hello there is no user")
+        //     return;
+        // }
 
 
-        ws.userId = user.userId;
+        // ws.userId = user.userId;
 
         ws.on("message", (data) => {
             let realmessage;
@@ -67,6 +67,15 @@ export function initWebSocket(server: any) {
                     type: "created",
                     payload: { roomId, symbol: "X" }
                 }));
+                ws.send(JSON.stringify({
+                    type: "joined",
+                    payload: { symbol: "X", roomId }
+                }));
+
+                ws.send(JSON.stringify({
+                    type: "start",
+                    payload: { turn: room.turn }
+                }));
             }
 
             if (realmessage.type == "join") {
@@ -76,7 +85,10 @@ export function initWebSocket(server: any) {
                 if (!room) {
                     return
                 }
+
+
                 if (room.players.size >= 2) {
+                    console.log(`[Join Failed] Room ${realmessage.payload.roomId} is full. Players: ${room.players.size}`);
                     ws.send(JSON.stringify({
                         type: "error",
                         message: "Room full"
@@ -87,7 +99,7 @@ export function initWebSocket(server: any) {
                 ws.roomId = realmessage.payload.roomId;
                 ws.send(JSON.stringify({
                     type: "joined",
-                    payload: { symbol: "O" }
+                    payload: { symbol: "O", roomId: realmessage.payload.roomId }
                 }));
                 for (const client of room.players) {
                     client.send(JSON.stringify({
@@ -141,23 +153,23 @@ export function initWebSocket(server: any) {
 
                 const { index, symbol } = realmessage.payload;
 
-                // Validate turn
+
                 if (room.turn !== symbol) {
                     ws.send(JSON.stringify({ type: "error", message: "Not your turn" }));
                     return;
                 }
 
-                // Validate cell
+
                 if (room.board[index] !== null) {
                     ws.send(JSON.stringify({ type: "error", message: "Cell occupied" }));
                     return;
                 }
 
-                // Make move
+
                 room.board[index] = symbol;
                 room.turn = symbol === "X" ? "O" : "X";
 
-                // Broadcast move
+
                 for (const client of room.players) {
                     client.send(JSON.stringify({
                         type: "update",
@@ -172,7 +184,12 @@ export function initWebSocket(server: any) {
 
                 const winner = checkWinner(room.board);
                 if (winner === "X" || winner === "O") {
-
+                    for (const client of room.players) {
+                        client.send(JSON.stringify({
+                            type: "gameover",
+                            payload: { winner }
+                        }));
+                    }
                 } else if (winner === "draw") {
                     for (const client of room.players) {
                         client.send(JSON.stringify({
@@ -180,7 +197,29 @@ export function initWebSocket(server: any) {
                             payload: { winner: null }
                         }));
                     }
-                    rooms.delete(roomId);
+                }
+            }
+
+            if (realmessage.type === "reset") {
+                const roomId = ws.roomId;
+                if (!roomId) return;
+
+                const room = rooms.get(roomId);
+                if (!room) return;
+
+                room.board = Array(9).fill(null);
+                console.log("resetting board");
+                console.log(room.board);
+                room.turn = "X";
+
+                for (const client of room.players) {
+                    client.send(JSON.stringify({
+                        type: "reset",
+                        payload: {
+                            board: room.board,
+                            turn: room.turn
+                        }
+                    }));
                 }
             }
         });
